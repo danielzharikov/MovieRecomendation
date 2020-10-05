@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace DataMovie
 {
+
     class Program
     {
         const string pathMovieCodes = "MovieCodes_IMDB.tsv";
@@ -20,7 +21,7 @@ namespace DataMovie
         static Dictionary<string, Movie> moviesWithImdbID = new Dictionary<string, Movie>();
         static Dictionary<string, Staff> staffsWithID = new Dictionary<string, Staff>();
         static Dictionary<int, Tag> tagsWithID = new Dictionary<int, Tag>();
-        static Dictionary<int, string> imdbIDWithTmdbID = new Dictionary<int, string>();
+        static Dictionary<int, string> tmdbIDAndImdbID = new Dictionary<int, string>();
         static Dictionary<string, Movie> moviesWithTitles = new Dictionary<string, Movie>();
         static Dictionary<string, Staff> staffsWithNames = new Dictionary<string, Staff>();
         static Dictionary<string, Tag> tagsWithNames = new Dictionary<string, Tag>();
@@ -89,10 +90,10 @@ namespace DataMovie
                 .ReadLines(pathTagScores)
                 .Skip(1)
                 .Select(line => line.Split(","))
-                .Where(line =>   double.Parse(line[2]) > 0.5);
+                .Where(line => double.Parse(line[2].Replace(".", ",")) > 0.5);
             foreach(string[] str in tempStrings)
             {
-                    ConnectMovieWithTag(int.Parse(str[0]), int.Parse(str[1]));
+                ConnectMovieWithTag(int.Parse(str[0]), int.Parse(str[1]));
             }
             Console.WriteLine((DateTime.Now - timeStart).ToString());
         }
@@ -112,9 +113,10 @@ namespace DataMovie
                 {
                     Movie movie;
                     moviesWithImdbID.TryGetValue(line[0], out movie);
-                    movie.averageRating = int.Parse(line[1]);
+                    movie.averageRating = float.Parse(line[1].Replace(".",","));
                 }
             }
+            Console.WriteLine((DateTime.Now - timeStart).ToString());
         }
 
         public static void GetMovieLinks()
@@ -127,8 +129,8 @@ namespace DataMovie
                 .Select(line => line.Split(","));
             foreach (var line in tempString)
             {
-                if (line[2] != "" && imdbIDWithTmdbID.ContainsKey(int.Parse(line[2])))
-                    imdbIDWithTmdbID.Add(int.Parse(line[2]), "tt" + line[1]);
+                if (line[2] != "" && tmdbIDAndImdbID.ContainsKey(int.Parse(line[2])))
+                    tmdbIDAndImdbID.Add(int.Parse(line[2]), "tt" + line[1]);
             }
             Console.WriteLine((DateTime.Now - timeStart).ToString());
         }
@@ -152,6 +154,9 @@ namespace DataMovie
                     case ("actor"):
                         ConnectMovieWithStaff(line[0], line[2], true);
                         break;
+                    case ("actress"):
+                        ConnectMovieWithStaff(line[0], line[2], true);
+                        break;
                     case ("self"):
                         ConnectMovieWithStaff(line[0], line[2], true);
                         break;
@@ -164,10 +169,8 @@ namespace DataMovie
         {
             if (!(moviesWithImdbID.ContainsKey(keyOfMovie) && staffsWithID.ContainsKey(keyOfStaff)))
                 return;
-            Staff tempStaff;
-            staffsWithID.TryGetValue(keyOfStaff, out tempStaff);
-            Movie tempMovie;
-            moviesWithImdbID.TryGetValue(keyOfMovie, out tempMovie);
+            staffsWithID.TryGetValue(keyOfStaff, out Staff tempStaff);
+            moviesWithImdbID.TryGetValue(keyOfMovie, out Movie tempMovie);
 
             tempMovie.staffs.Add(tempStaff);
             if (isActor)
@@ -178,62 +181,15 @@ namespace DataMovie
 
         public static void ConnectMovieWithTag(int tmdbID, int tagID)
         {
-            if (!(imdbIDWithTmdbID.ContainsKey(tmdbID) && tagsWithID.ContainsKey(tagID)))
+            if (!(tmdbIDAndImdbID.ContainsKey(tmdbID) && tagsWithID.ContainsKey(tagID)))
                 return;
-            string imdbID;
-            imdbIDWithTmdbID.TryGetValue(tmdbID, out imdbID);
-            Tag tag;
-            tagsWithID.TryGetValue(tagID, out tag);
+            tmdbIDAndImdbID.TryGetValue(tmdbID, out string imdbID);
+            tagsWithID.TryGetValue(tagID, out Tag tag);
             if (!moviesWithImdbID.ContainsKey(imdbID))
                 return;
-            Movie movie;
-            moviesWithImdbID.TryGetValue(imdbID, out movie);
+            moviesWithImdbID.TryGetValue(imdbID, out Movie movie);
             movie.tags.Add(tag);
             tag.movies.Add(movie);
-        }
-
-        public struct Movie
-        {
-            public string title;
-            public string language;
-            public HashSet<Staff> staffs;
-            public HashSet<Tag> tags;
-            public int averageRating;
-
-            public Movie(string title, string language)
-            {
-                this.title = title;
-                this.language = language;
-                staffs = new HashSet<Staff>();
-                tags = new HashSet<Tag>();
-                averageRating = 0;
-            }
-        }
-
-        public struct Staff
-        {
-            public string fullName;
-            public HashSet<Movie> isActor;
-            public HashSet<Movie> isDirector;
-
-            public Staff(string fullName)
-            {
-                this.fullName = fullName;
-                isActor = new HashSet<Movie>();
-                isDirector = new HashSet<Movie>();
-            }
-        }
-
-        public struct Tag
-        {
-            public string name;
-            public HashSet<Movie> movies;
-
-            public Tag(string name)
-            {
-                this.name = name;
-                movies = new HashSet<Movie>();
-            }
         }
     }
 }
