@@ -20,7 +20,7 @@ namespace DataMovie
         static Dictionary<string, Movie> moviesWithImdbID = new Dictionary<string, Movie>();
         static Dictionary<string, Staff> staffsWithID = new Dictionary<string, Staff>();
         static Dictionary<int, Tag> tagsWithID = new Dictionary<int, Tag>();
-        static Dictionary<int, int> imdbIDWithTmdbID = new Dictionary<int, int>();
+        static Dictionary<int, string> imdbIDWithTmdbID = new Dictionary<int, string>();
         static Dictionary<string, Movie> moviesWithTitles = new Dictionary<string, Movie>();
         static Dictionary<string, Staff> staffsWithNames = new Dictionary<string, Staff>();
         static Dictionary<string, Tag> tagsWithNames = new Dictionary<string, Tag>();
@@ -31,6 +31,10 @@ namespace DataMovie
             GetDictionaryOfMoviesAndImdbID();
             GetDictionaryOfStaffNames();
             GetInfoActorsAndDirectors();
+            GetTagsWithID();
+            GetMovieLinks();
+            GetTagScores();
+            GetRatingsOfMovies();
             Console.ReadKey();
         }
 
@@ -65,6 +69,70 @@ namespace DataMovie
             Console.WriteLine((DateTime.Now - timeStart).ToString());
         }
 
+        public static void GetTagsWithID()
+        {
+            DateTime timeStart = DateTime.Now;
+            tagsWithID = File
+                .ReadLines(pathTagCodes)
+                .AsParallel()
+                .Skip(1)
+                .Select(line => line.Split(","))
+                .ToDictionary(
+                line => int.Parse(line[0]), line => new Tag(line[1]));
+            Console.WriteLine((DateTime.Now - timeStart).ToString());
+        }
+
+        public static void GetTagScores()
+        {
+            DateTime timeStart = DateTime.Now;
+            var tempStrings = File
+                .ReadLines(pathTagScores)
+                .Skip(1)
+                .Select(line => line.Split(","))
+                .Where(line =>   double.Parse(line[2]) > 0.5);
+            foreach(string[] str in tempStrings)
+            {
+                    ConnectMovieWithTag(int.Parse(str[0]), int.Parse(str[1]));
+            }
+            Console.WriteLine((DateTime.Now - timeStart).ToString());
+        }
+
+        public static void GetRatingsOfMovies()
+        {
+            DateTime timeStart = DateTime.Now;
+            var tempStrings = File
+                .ReadLines(pathRatings)
+                .AsParallel()
+                .Skip(1)
+                .Select(line => line.Split());
+
+            foreach(var line in tempStrings)
+            {
+                if (moviesWithImdbID.ContainsKey(line[0]))
+                {
+                    Movie movie;
+                    moviesWithImdbID.TryGetValue(line[0], out movie);
+                    movie.averageRating = int.Parse(line[1]);
+                }
+            }
+        }
+
+        public static void GetMovieLinks()
+        {
+            DateTime timeStart = DateTime.Now;
+            var tempString = File
+                .ReadLines(pathLinks)
+                .AsParallel()
+                .Skip(1)
+                .Select(line => line.Split(","));
+            foreach (var line in tempString)
+            {
+                if (line[2] != "" && imdbIDWithTmdbID.ContainsKey(int.Parse(line[2])))
+                    imdbIDWithTmdbID.Add(int.Parse(line[2]), "tt" + line[1]);
+            }
+            Console.WriteLine((DateTime.Now - timeStart).ToString());
+        }
+
         public static void GetInfoActorsAndDirectors()
         {
             DateTime timeStart = DateTime.Now;
@@ -84,14 +152,11 @@ namespace DataMovie
                     case ("actor"):
                         ConnectMovieWithStaff(line[0], line[2], true);
                         break;
+                    case ("self"):
+                        ConnectMovieWithStaff(line[0], line[2], true);
+                        break;
                 }
-                Staff staff;
-                staffsWithID.TryGetValue(line[2], out staff);
-                Console.WriteLine(staff.fullName);
             }
-
-
-
             Console.WriteLine((DateTime.Now - timeStart).ToString());
         }
 
@@ -109,6 +174,22 @@ namespace DataMovie
                 tempStaff.isActor.Add(tempMovie);
             else
                 tempStaff.isDirector.Add(tempMovie);
+        }
+
+        public static void ConnectMovieWithTag(int tmdbID, int tagID)
+        {
+            if (!(imdbIDWithTmdbID.ContainsKey(tmdbID) && tagsWithID.ContainsKey(tagID)))
+                return;
+            string imdbID;
+            imdbIDWithTmdbID.TryGetValue(tmdbID, out imdbID);
+            Tag tag;
+            tagsWithID.TryGetValue(tagID, out tag);
+            if (!moviesWithImdbID.ContainsKey(imdbID))
+                return;
+            Movie movie;
+            moviesWithImdbID.TryGetValue(imdbID, out movie);
+            movie.tags.Add(tag);
+            tag.movies.Add(movie);
         }
 
         public struct Movie
