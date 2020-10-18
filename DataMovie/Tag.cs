@@ -2,7 +2,7 @@
 
 namespace DataMovie
 {
-    public struct Tag
+    public class Tag
     {
         public string name;
         public HashSet<Movie> movies;

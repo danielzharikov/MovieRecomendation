@@ -2,7 +2,7 @@
 
 namespace DataMovie
 {
-    public struct Staff
+    public class Staff
     {
         public string fullName;
         public HashSet<Movie> isActor;

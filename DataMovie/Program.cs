@@ -36,6 +36,12 @@ namespace DataMovie
             GetMovieLinks();
             GetTagScores();
             GetRatingsOfMovies();
+            //CheckEverything();
+            string tempImdbId = Console.ReadLine();
+            List<Movie> similarMovie = moviesWithImdbID[tempImdbId].GetSimilarMovies();
+            foreach(var movie in similarMovie)
+                Console.WriteLine(movie.title);
+            Console.WriteLine($"{moviesWithImdbID.Count} {staffsWithID.Count} {tagsWithID.Count}");
             Console.ReadKey();
         }
 
@@ -46,7 +52,7 @@ namespace DataMovie
                 .ReadLines(pathMovieCodes)
                 .AsParallel()
                 .Skip(1)
-                .Select(line => line.Split("\t"));
+                .Select(line => line.Split("\t")); // tt0026366
 
             foreach (string[] line in tempstrings)
             {
@@ -88,6 +94,7 @@ namespace DataMovie
             DateTime timeStart = DateTime.Now;
             var tempStrings = File
                 .ReadLines(pathTagScores)
+                .AsParallel()
                 .Skip(1)
                 .Select(line => line.Split(","))
                 .Where(line => double.Parse(line[2].Replace(".", ",")) > 0.5);
@@ -111,12 +118,16 @@ namespace DataMovie
             {
                 if (moviesWithImdbID.ContainsKey(line[0]))
                 {
-                    Movie movie;
-                    moviesWithImdbID.TryGetValue(line[0], out movie);
-                    movie.averageRating = float.Parse(line[1].Replace(".",","));
+                    moviesWithImdbID[line[0]].averageRating = float.Parse(line[1].Replace(".",","));
                 }
             }
             Console.WriteLine((DateTime.Now - timeStart).ToString());
+        }
+
+        public static void CheckEverything()
+        {
+            foreach(var item in moviesWithImdbID)
+                Console.WriteLine($"{item.Key} {item.Value.title} {item.Value.averageRating}");
         }
 
         public static void GetMovieLinks()
