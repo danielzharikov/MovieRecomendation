@@ -25,19 +25,21 @@ namespace DataMovie
         public List<Movie> GetSimilarMovies()
         {
             Dictionary<Movie, double> dictOfSimilarMovies = new Dictionary<Movie, double>();
-            foreach(var tag in this.tags)
-                foreach(var movie in tag.movies)
+            foreach (var movie in from tag in this.tags
+                                  from movie in tag.movies
+                                  select movie)
+            {
+                if (dictOfSimilarMovies.ContainsKey(movie))
                 {
-                    if (dictOfSimilarMovies.ContainsKey(movie))
-                    {
-                        dictOfSimilarMovies[movie]++;
-                    }
-                    else
-                    {
-                        dictOfSimilarMovies.Add(movie, 1);
-                    }
+                    dictOfSimilarMovies[movie]++;
                 }
-            foreach(var staff in this.staffs)
+                else
+                {
+                    dictOfSimilarMovies.Add(movie, 1);
+                }
+            }
+
+            foreach (var staff in this.staffs)
             {
                 if (staff.isActor.Contains(this))
                     foreach (var movie in staff.isActor)
@@ -64,11 +66,13 @@ namespace DataMovie
                     }
             }
             double maxValue = 0;
-            foreach(var item in dictOfSimilarMovies)
+            foreach (var item in from item in dictOfSimilarMovies
+                                 where item.Value > maxValue && !item.Key.Equals(this)
+                                 select item)
             {
-                if (item.Value > maxValue && !item.Key.Equals(this))
-                    maxValue = item.Value;
+                maxValue = item.Value;
             }
+
             dictOfSimilarMovies.Remove(this);
 
             

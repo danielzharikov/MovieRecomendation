@@ -36,7 +36,6 @@ namespace DataMovie
             GetMovieLinks();
             GetTagScores();
             GetRatingsOfMovies();
-            //CheckEverything();
             string tempImdbId = Console.ReadLine();
             List<Movie> similarMovie = moviesWithImdbID[tempImdbId].GetSimilarMovies();
             foreach(var movie in similarMovie)
@@ -122,12 +121,6 @@ namespace DataMovie
                 }
             }
             Console.WriteLine((DateTime.Now - timeStart).ToString());
-        }
-
-        public static void CheckEverything()
-        {
-            foreach(var item in moviesWithImdbID)
-                Console.WriteLine($"{item.Key} {item.Value.title} {item.Value.averageRating}");
         }
 
         public static void GetMovieLinks()
